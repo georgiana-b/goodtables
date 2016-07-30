@@ -7,6 +7,8 @@ from __future__ import unicode_literals
 import os
 import time
 from . import pipeline
+from multiprocess import Pool
+from functools import partial
 from ..utilities import helpers
 from .. import datatable
 
@@ -39,7 +41,6 @@ class Batch(object):
         self.encoding_key = encoding_key
         self.dataset = self.get_dataset()
         self.pipeline_options = pipeline_options or {}
-        self.current_pipeline = None
         self.reports = []
 
         helpers.validate_handler(post_task, 1)
@@ -132,22 +133,24 @@ class Batch(object):
         return pipeline.Pipeline(data, post_task=self.pipeline_post_task,
                                  **options)
 
+    def run_pipeline_instance(self, data_row):
+        """Run a pipeline instance corresponding to a datatable row"""
+
+        pipeline = self.pipeline_factory(data=data_row['data'],
+                                         schema=data_row['schema'],
+                                         format=data_row['format'],
+                                         encoding=data_row['encoding'])
+        result, report = pipeline.run()
+        if self.sleep:
+            time.sleep(self.sleep)
+        return report.generate('json')
+
     def run(self):
         """Run the batch."""
 
-        # TODO: parallelize
-
-        for data in self.dataset:
-            pipeline = self.pipeline_factory(data=data['data'],
-                                             schema=data['schema'],
-                                             format=data['format'], 
-                                             encoding=data['encoding'])
-            self.current_pipeline = pipeline
-            result, report = self.current_pipeline.run()
-            self.reports.append(report)
-            
-            if self.sleep:
-                time.sleep(self.sleep)
+        pool = Pool(processes=7)
+        self.reports = pool.map(self.run_pipeline_instance, self.dataset, chunksize=7)
+        pool.close()
 
         if self.post_task:
             self.post_task(self)
