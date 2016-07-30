@@ -141,9 +141,11 @@ class Batch(object):
                                          format=data_row['format'],
                                          encoding=data_row['encoding'])
         result, report = pipeline.run()
+        result_object = report.__dict__.copy()
+        del result_object['storage']
         if self.sleep:
             time.sleep(self.sleep)
-        return report.generate('json')
+        return result_object
 
     def run(self):
         """Run the batch."""
@@ -155,4 +157,4 @@ class Batch(object):
         if self.post_task:
             self.post_task(self)
 
-        return not any([report.count for report in self.reports])
+        return not any([report['count'] for report in self.reports])
