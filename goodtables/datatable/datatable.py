@@ -16,7 +16,6 @@ from .. import exceptions
 from .. import compat
 from ..utilities import helpers
 
-
 class DataTable(object):
 
     """Convert a data source into a formatted (csv, json) utf-8 text stream."""
@@ -185,7 +184,7 @@ class DataTable(object):
                         value = datetime.datetime(
                             *xlrd.xldate_as_tuple(cell.value, sheet.book.datemode)
                         ).isoformat()
-                    except xlrd.xldate.XLDateError as e:
+                    except (xlrd.xldate.XLDateError, ValueError) as e:
                         raise exceptions.DataSourceMalformatedError(msg=e.args[0],
                                                                file_format='excel')
                 else:
@@ -209,7 +208,8 @@ class DataTable(object):
                 if index == self.header_index:
                     headers = line
                     break
-
+            else:
+                headers = []
             return headers
         except csv.Error as e:
             raise exceptions.DataSourceMalformatedError(msg=e.args[0], file_format='csv')
@@ -219,13 +219,14 @@ class DataTable(object):
 
         stream = io.BufferedRandom(io.BytesIO())
         valid_url = helpers.make_valid_url(url)
-
         try:
             document = compat.urlopen(valid_url)
         except compat.HTTPError as e:
             raise exceptions.DataSourceHTTPError(status=e.getcode())
-
-        stream.write(document.read())
+        try:
+            stream.write(document.read())
+        except compat.IncompleteRead as e:
+            pass
         stream.seek(0)
 
         return stream
@@ -335,4 +336,3 @@ class DataTable(object):
                 raise exceptions.DataSourceFormatUnsupportedError(file_format=file_format)
             else:
                 test_stream.seek(0)
-                

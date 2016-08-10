@@ -23,7 +23,7 @@ if is_py2:
     from urlparse import urlparse, urlsplit, urlunsplit
     from urllib import quote, quote_plus
     from urllib2 import urlopen, HTTPError
-    from httplib import responses
+    from httplib import responses, IncompleteRead
     builtin_str = str
     bytes = str
     str = unicode
@@ -60,7 +60,7 @@ elif is_py3:
     from urllib.parse import urlparse, urlsplit, urlunsplit, quote, quote_plus
     from urllib.request import urlopen
     from urllib.error import HTTPError
-    from http.client import responses
+    from http.client import responses, IncompleteRead
     builtin_str = str
     str = str
     bytes = bytes
