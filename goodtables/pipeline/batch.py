@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 import os
 import time
 from . import pipeline
-from multiprocess import Pool
+from multiprocessing.pool import ThreadPool
 from functools import partial
 from ..utilities import helpers
 from .. import datatable
@@ -150,7 +150,7 @@ class Batch(object):
     def run(self):
         """Run the batch."""
 
-        pool = Pool(processes=7)
+        pool = ThreadPool(processes=7)
         self.reports = pool.map(self.run_pipeline_instance, self.dataset, chunksize=7)
         pool.close()
 
