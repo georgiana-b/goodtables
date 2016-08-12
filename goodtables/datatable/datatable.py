@@ -164,7 +164,7 @@ class DataTable(object):
                 workbook = xlrd.open_workbook(file_contents=instream)
             else:
                 workbook = xlrd.open_workbook(data_source)
-        except xlrd.biffh.XLRDError as e:
+        except (xlrd.biffh.XLRDError, ValueError) as e:
             raise exceptions.DataSourceMalformatedError(msg=e.args[0], file_format='excel')
 
         out = io.TextIOWrapper(io.BufferedRandom(io.BytesIO()), encoding=self.DEFAULT_ENCODING)
@@ -223,11 +223,13 @@ class DataTable(object):
             document = compat.urlopen(valid_url)
         except compat.HTTPError as e:
             raise exceptions.DataSourceHTTPError(status=e.getcode())
+        except ConnectionResetError:
+            raise exceptions.DataSourceHTTPError(status=503)
         try:
             stream.write(document.read())
+            stream.seek(0)
         except compat.IncompleteRead as e:
-            pass
-        stream.seek(0)
+            raise exceptions.DataSourceHTTPError(status=400)
 
         return stream
 
